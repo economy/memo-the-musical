@@ -8,7 +8,7 @@ music-ready Message DNA without generating music.
 1. Install Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 2. Copy `.env.example` to `.env` and add an OpenAI key for live realtime calls.
 3. Run `uv sync`, then `task dev`.
-4. Open `http://127.0.0.1:8000`.
+4. Open `http://127.0.0.1:8885`.
 
 The browser sends microphone audio directly to OpenAI over WebRTC. The API key and agent tools
 remain on the server. Normal tests use injected fakes and need neither credentials nor network.

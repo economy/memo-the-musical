@@ -41,8 +41,8 @@ class OpenAIRealtimeCallClient(RealtimeCallPort):
                 REALTIME_CALLS_PATH,
                 headers={"Authorization": f"Bearer {self._api_key}"},
                 files={
-                    SDP_FORM_FIELD: ("offer.sdp", offer_sdp, SDP_MEDIA_TYPE),
-                    SESSION_FORM_FIELD: ("session.json", session, "application/json"),
+                    SDP_FORM_FIELD: (None, offer_sdp, SDP_MEDIA_TYPE),
+                    SESSION_FORM_FIELD: (None, session, "application/json"),
                 },
             )
         except httpx.RequestError as error:
