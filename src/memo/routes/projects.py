@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from memo.domain.demo.constants import (
     ACTIVE_PROJECT_COOKIE,
     REPLAY_DEMO_PROJECT_ID,
+    SECURITY_DEMO_PROJECT_ID,
 )
 from memo.domain.message_dna.models import MessagePreset, Project, StrictModel
 from memo.services.demo_seed import create_preset_project
@@ -72,9 +73,14 @@ def build_projects_router(message_service: MessageDNAService) -> APIRouter:
     async def select_replay() -> Response:
         return await select_project(REPLAY_DEMO_PROJECT_ID)
 
+    async def clear_live_project() -> Response:
+        message_service.reset_project(SECURITY_DEMO_PROJECT_ID)
+        return await select_project(SECURITY_DEMO_PROJECT_ID)
+
     router.add_api_route("", list_projects, methods=["GET"])
     router.add_api_route("", create_project, methods=["POST"], status_code=status.HTTP_201_CREATED)
     router.add_api_route("/replay", select_replay, methods=["POST"])
+    router.add_api_route("/clear", clear_live_project, methods=["POST"])
     router.add_api_route("/select/{project_id}", select_project, methods=["POST"])
     router.add_api_route("/{project_id}", get_project, methods=["GET"])
     return router

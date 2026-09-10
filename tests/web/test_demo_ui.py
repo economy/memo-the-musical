@@ -10,7 +10,8 @@ from memo.domain.demo.constants import (
     SECURITY_DEMO_PROJECT_ID,
     SECURITY_DEMO_TEXT,
 )
-from memo.domain.message_dna.models import FactStatus, MessagePreset
+from memo.domain.message_dna.models import Chorus, FactStatus, MessagePreset
+from memo.domain.message_dna.updates import MessageDNAPatch
 from memo.domain.realtime.ports import (
     CallCreation,
     RealtimeCallPort,
@@ -71,6 +72,9 @@ async def test_demo_page_renders_studio_identity(tmp_path: Path) -> None:
     assert 'id="start-call"' in page.text
     assert 'id="demo-transcript"' in page.text
     assert 'id="replay-fallback"' in page.text
+    assert 'id="clear-project"' in page.text
+    assert "hx-get=" not in page.text
+    assert "setInterval(refreshDnaPanel, 750)" not in script.text
     assert SECURITY_DEMO_TEXT in unescape(page.text)
     assert f'value="{SECURITY_DEMO_PROJECT_ID}"' in page.text
     assert "tailwindcss.com" in page.text
@@ -162,3 +166,26 @@ async def test_replay_project_reloads_exact_correction_history(tmp_path: Path) -
     assert project.message_dna.guardrails
     assert project.message_dna.unresolved_questions == ["What is the LearnHub URL?"]
     reopened.close()
+
+
+async def test_clear_route_resets_live_project_and_labels_live(tmp_path: Path) -> None:
+    transport, repository = build_demo_app(tmp_path)
+    MessageDNAService(repository).update_project(
+        SECURITY_DEMO_PROJECT_ID,
+        MessageDNAPatch(chorus=Chorus(summary="Filled for the test."), audience="Staff"),
+    )
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        await client.post("/api/projects/replay")
+        cleared = await client.post("/api/projects/clear")
+        fragment = await client.get(f"/fragments/dna/{SECURITY_DEMO_PROJECT_ID}")
+
+    assert cleared.status_code == 200
+    assert cleared.json()["project_id"] == SECURITY_DEMO_PROJECT_ID
+    assert cleared.json()["mode"] == "live"
+    assert "Unwritten" in fragment.text
+    assert "No exact facts locked yet." in fragment.text
+    assert "No original request captured yet." in fragment.text
+    assert SECURITY_DEMO_TEXT not in fragment.text
+    assert "REPLAY" not in fragment.text
+    repository.close()

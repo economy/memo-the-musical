@@ -17,11 +17,36 @@ from memo.domain.message_dna.models import (
 )
 from memo.domain.message_dna.updates import (
     CallToActionPatch,
+    DeliveryContextPatch,
     FactCorrection,
     MessageDNAPatch,
 )
 from memo.services.message_dna_service import MessageDNAService
 from memo.services.realtime_agent import RealtimeAgentFactory
+
+
+def test_reset_project_clears_extracted_fields_and_keeps_demo_request(tmp_path: Path) -> None:
+    repository = SQLiteProjectRepository(tmp_path / "memo.db")
+    service = MessageDNAService(repository)
+    project = Project.new(title="Training", preset=MessagePreset.TRAINING)
+    project_data = project.model_dump()
+    project_data["id"] = "security-training"
+    project = service.create_project(Project.model_validate(project_data))
+    service.update_project(
+        project.id,
+        MessageDNAPatch(
+            chorus=Chorus(summary="Finish training."),
+            audience="Employees and contractors",
+        ),
+    )
+
+    cleared = service.reset_project(project.id)
+
+    assert cleared.message_dna.chorus is None
+    assert cleared.message_dna.audience is None
+    assert cleared.message_dna.locked_facts == []
+    assert cleared.message_dna.original_request is None
+    repository.close()
 
 
 def test_partial_updates_merge_without_erasing_existing_fields(tmp_path: Path) -> None:
@@ -86,23 +111,17 @@ def test_strict_tool_null_shape_does_not_clear_existing_fields(tmp_path: Path) -
     service.create_project(project)
     tool = cast(FunctionTool, RealtimeAgentFactory(service).create(project.id).tools[0])
     schema = cast(dict[str, object], cast(object, tool.params_json_schema))
-    definitions = cast(dict[str, object], schema["$defs"])
-    patch_schema = cast(dict[str, object], definitions["MessageDNAPatch"])
-    required = cast(list[str], patch_schema["required"])
-    tool_payload: dict[str, object] = {}
-    for field in required:
-        tool_payload[field] = None
-    tool_payload["audience"] = "Employees and contractors"
-    tool_payload["delivery"] = {
-        "channel": None,
-        "duration": None,
-        "deadline": "Thursday at 5 PM Pacific",
-        "context": None,
-    }
+    properties = cast(dict[str, object], schema["properties"])
+    definitions = cast(dict[str, object], schema.get("$defs", {}))
+    assert "chorus" in properties
+    assert "MessageDNAPatch" not in definitions
 
     updated = service.update_project(
         project.id,
-        MessageDNAPatch.model_validate(tool_payload),
+        MessageDNAPatch(
+            audience="Employees and contractors",
+            delivery=DeliveryContextPatch(deadline="Thursday at 5 PM Pacific"),
+        ),
     )
 
     assert updated.message_dna.chorus == Chorus(summary="Keep the team secure.")

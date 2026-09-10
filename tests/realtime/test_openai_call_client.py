@@ -14,6 +14,8 @@ async def test_call_client_forwards_multipart_sdp_and_extracts_call_id() -> None
         assert request.url.path == "/v1/realtime/calls"
         assert "multipart/form-data" in request.headers["content-type"]
         assert b"gpt-realtime-2.1-mini" in body
+        assert b"verse" in body
+        assert b"update_message_dna" in body
         assert b"v=0\r\no=browser-offer" in body
         assert b'filename="offer.sdp"' not in body
         assert b'filename="session.json"' not in body

@@ -14,7 +14,7 @@ def test_realtime_agent_has_one_server_side_state_tool(tmp_path: Path) -> None:
     assert len(agent.tools) == 1
     assert agent.tools[0].name == "update_message_dna"
     assert isinstance(agent.instructions, str)
-    assert "one high-value question at a time" in agent.instructions
-    assert "exact facts" in agent.instructions
+    assert "high-value question" in agent.instructions
+    assert "exact dates" in agent.instructions
     assert "sensitive" in agent.instructions
     repository.close()

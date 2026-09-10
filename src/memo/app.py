@@ -15,7 +15,6 @@ from memo.config import Settings
 from memo.domain.demo.constants import (
     ACTIVE_PROJECT_COOKIE,
     SECURITY_DEMO_PROJECT_ID,
-    SECURITY_DEMO_TEXT,
 )
 from memo.domain.message_dna.models import MessagePreset
 from memo.domain.message_dna.readiness import assess_readiness
@@ -27,6 +26,7 @@ from memo.services.demo_seed import ensure_demo_projects
 from memo.services.message_dna_service import MessageDNAService
 from memo.services.realtime_agent import RealtimeAgentFactory
 from memo.services.sideband_registry import SidebandSessionRegistry
+from memo.services.transcript_ingest import TranscriptIngestor
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEMO_PRESETS = (
@@ -75,7 +75,6 @@ def create_app(
             context={
                 "project": project,
                 "presets": DEMO_PRESETS,
-                "demo_text": SECURITY_DEMO_TEXT,
                 "readiness": readiness,
                 "is_replay": project.id.endswith("-replay"),
             },
@@ -104,6 +103,7 @@ def create_default_app() -> FastAPI:
     )
     attacher = AgentsSDKSidebandAttacher(
         RealtimeAgentFactory(service),
+        TranscriptIngestor(service),
         api_key=settings.openai_api_key.get_secret_value(),
     )
     registry = SidebandSessionRegistry(attacher)

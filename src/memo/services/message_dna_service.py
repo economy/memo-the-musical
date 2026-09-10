@@ -65,6 +65,18 @@ class MessageDNAService:
         updated = Project.model_validate(project_data)
         return self._repository.update(updated)
 
+    def reset_project(self, project_id: str) -> Project:
+        """Clear extracted Message DNA while keeping the project identity."""
+        project = self._require_project(project_id)
+        project_data = project.model_dump()
+        project_data.update(
+            {
+                "message_dna": MessageDNA(),
+                "updated_at": datetime.now(UTC),
+            }
+        )
+        return self._repository.update(Project.model_validate(project_data))
+
     def delete_project(self, project_id: str) -> bool:
         """Delete a project and report whether it existed."""
         return self._repository.delete(project_id)

@@ -4,7 +4,7 @@ tasks:
   dev:
     desc: Start the local FastAPI application
     cmds:
-      - uv run uvicorn memo.app:create_default_app --factory --reload --port 8885
+      - uv run uvicorn memo.app:create_default_app --factory --reload --port 8885 --reload-exclude 'data/*' --reload-exclude '.venv/*'
 
   test:
     desc: Run the credential-free test suite

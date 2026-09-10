@@ -2,6 +2,7 @@ const startButton = document.querySelector("#start-call");
 const stopButton = document.querySelector("#stop-call");
 const demoTranscriptButton = document.querySelector("#demo-transcript");
 const replayButton = document.querySelector("#replay-fallback");
+const clearButton = document.querySelector("#clear-project");
 const projectInput = document.querySelector("#project-id");
 const status = document.querySelector("#call-status");
 const dataStatus = document.querySelector("#data-status");
@@ -31,6 +32,7 @@ let callId = null;
 let eventsChannel = null;
 let sessionMode = "live";
 let dnaPollTimer = null;
+let lastDnaHtml = "";
 
 function setStatus(value) {
   status.textContent = value;
@@ -63,13 +65,13 @@ function refreshDnaPanel() {
     return;
   }
   const url = `/fragments/dna/${encodeURIComponent(projectInput.value)}`;
-  if (window.htmx) {
-    window.htmx.ajax("GET", url, { target: "#message-dna-panel", swap: "innerHTML" });
-    return;
-  }
   fetch(url)
     .then((response) => response.text())
     .then((html) => {
+      if (html === lastDnaHtml) {
+        return;
+      }
+      lastDnaHtml = html;
       dnaPanel.innerHTML = html;
     })
     .catch(() => {
@@ -77,9 +79,17 @@ function refreshDnaPanel() {
     });
 }
 
+function resetTranscript() {
+  if (!transcriptLog) {
+    return;
+  }
+  transcriptLog.innerHTML = '<li class="text-rust">Waiting for voice…</li>';
+}
+
 function startDnaPolling() {
   stopDnaPolling();
-  dnaPollTimer = window.setInterval(refreshDnaPanel, 2000);
+  refreshDnaPanel();
+  dnaPollTimer = window.setInterval(refreshDnaPanel, 2500);
 }
 
 function stopDnaPolling() {
@@ -107,6 +117,7 @@ function handleRealtimeEvent(payload) {
       break;
     case "conversation.item.input_audio_transcription.completed":
       appendTranscript("you", payload.transcript ?? "");
+      refreshDnaPanel();
       break;
     case "response.audio_transcript.done":
       appendTranscript("memo", payload.transcript ?? "");
@@ -244,6 +255,23 @@ async function useDemoTranscript() {
   }
 }
 
+async function clearBoard() {
+  await stopCall("idle");
+  const response = await fetch(`${PROJECTS_ENDPOINT}/clear`, { method: "POST" });
+  if (!response.ok) {
+    console.error("Clear board failed");
+    return;
+  }
+  const payload = await response.json();
+  projectInput.value = payload.project_id;
+  lastDnaHtml = "";
+  setSessionBadge("live");
+  startButton.disabled = false;
+  demoTranscriptButton.disabled = true;
+  resetTranscript();
+  refreshDnaPanel();
+}
+
 async function activateReplay() {
   await stopCall("idle");
   const response = await fetch(`${PROJECTS_ENDPOINT}/replay`, { method: "POST" });
@@ -287,6 +315,9 @@ demoTranscriptButton.addEventListener("click", () => {
 });
 replayButton.addEventListener("click", () => {
   void activateReplay();
+});
+clearButton?.addEventListener("click", () => {
+  void clearBoard();
 });
 hidePresenterRailButton?.addEventListener("click", () => {
   presenterRail?.classList.add("hidden");

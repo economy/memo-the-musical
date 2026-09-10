@@ -5,7 +5,6 @@ import httpx
 from memo.domain.realtime.constants import (
     REALTIME_CALLS_PATH,
     REALTIME_MODEL,
-    REALTIME_SESSION_TYPE,
     REALTIME_VAD_TYPE,
     REALTIME_VOICE,
     SDP_FORM_FIELD,
@@ -13,6 +12,7 @@ from memo.domain.realtime.constants import (
     SESSION_FORM_FIELD,
 )
 from memo.domain.realtime.ports import CallCreation, RealtimeCallPort
+from memo.domain.realtime.session_tools import INITIAL_REALTIME_SESSION
 
 
 class RealtimeUpstreamError(RuntimeError):
@@ -28,7 +28,7 @@ class OpenAIRealtimeCallClient(RealtimeCallPort):
         """Forward a browser SDP offer without exposing the server API key."""
         session = json.dumps(
             {
-                "type": REALTIME_SESSION_TYPE,
+                **INITIAL_REALTIME_SESSION,
                 "model": REALTIME_MODEL,
                 "audio": {
                     "input": {"turn_detection": {"type": REALTIME_VAD_TYPE}},

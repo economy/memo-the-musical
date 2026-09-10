@@ -2,7 +2,7 @@ REALTIME_MODEL = "gpt-realtime-2.1-mini"
 REALTIME_SESSION_TYPE = "realtime"
 REALTIME_CALLS_PATH = "/v1/realtime/calls"
 REALTIME_VAD_TYPE = "semantic_vad"
-REALTIME_VOICE = "marin"
+REALTIME_VOICE = "verse"
 
 SDP_MEDIA_TYPE = "application/sdp"
 SDP_FORM_FIELD = "sdp"

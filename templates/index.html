@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Memo: The Musical</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/htmx.org@2.0.7"></script>
     <script>
       tailwind.config = {
         theme: {
@@ -117,6 +116,11 @@
                 type="button"
                 class="border-2 border-rust bg-rust px-4 py-2 font-mono text-sm uppercase text-cream"
               >Replay Last Run</button>
+              <button
+                id="clear-project"
+                type="button"
+                class="border-2 border-ink bg-cream px-4 py-2 font-mono text-sm uppercase"
+              >Clear Board</button>
             </div>
             <p class="mt-3 font-mono text-sm">Status: <strong id="call-status">idle</strong></p>
             <p id="data-status" class="font-mono text-xs uppercase tracking-wide">Data channel: closed</p>
@@ -124,22 +128,16 @@
           </div>
 
           <div class="border-2 border-ink bg-white p-4">
-            <p class="font-mono text-xs uppercase tracking-widest text-rust">Sacred Lyrics</p>
-            <p class="mt-2 text-sm leading-relaxed">{{ demo_text }}</p>
-            <div class="mt-4">
-              <p class="font-mono text-xs uppercase tracking-widest">Live Transcript</p>
-              <ul id="transcript-log" class="mt-2 max-h-40 space-y-2 overflow-y-auto font-mono text-xs">
-                <li class="text-rust">Waiting for voice…</li>
-              </ul>
-            </div>
+            <p class="font-mono text-xs uppercase tracking-widest">Live Transcript</p>
+            <ul id="transcript-log" class="mt-2 max-h-40 space-y-2 overflow-y-auto font-mono text-xs">
+              <li class="text-rust">Waiting for voice…</li>
+            </ul>
           </div>
         </section>
 
         <section
           id="message-dna-panel"
           class="border-4 border-ink bg-white p-4"
-          hx-get="/fragments/dna/{{ project.id }}"
-          hx-swap="innerHTML"
         >
           {% include "fragments/message_dna.html" %}
         </section>
