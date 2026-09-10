@@ -25,6 +25,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 def create_app(
     call_client: RealtimeCallPort,
     registry: SidebandSessionRegistry,
+    message_service: MessageDNAService,
     shutdown: Callable[[], Awaitable[None]] | None = None,
 ) -> FastAPI:
     """Create the application with externally supplied I/O dependencies."""
@@ -32,14 +33,16 @@ def create_app(
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
         yield
-        await registry.close_all()
-        if shutdown is not None:
-            await shutdown()
+        try:
+            await registry.close_all()
+        finally:
+            if shutdown is not None:
+                await shutdown()
 
     app = FastAPI(title="Memo: The Musical", lifespan=lifespan)
     templates = Jinja2Templates(directory=PROJECT_ROOT / "templates")
     app.mount("/static", StaticFiles(directory=PROJECT_ROOT / "static"), name="static")
-    app.include_router(build_realtime_router(call_client, registry))
+    app.include_router(build_realtime_router(call_client, registry, message_service))
 
     async def index(request: Request) -> HTMLResponse:
         return templates.TemplateResponse(request=request, name="index.html")
@@ -60,7 +63,9 @@ def create_default_app() -> FastAPI:
     service = MessageDNAService(repository)
     if service.get_project("transport-spike") is None:
         project = Project.new(title="Transport spike", preset=MessagePreset.GENERAL)
-        service.create_project(project.model_copy(update={"id": "transport-spike"}))
+        project_data = project.model_dump()
+        project_data["id"] = "transport-spike"
+        service.create_project(Project.model_validate(project_data))
 
     http_client = httpx.AsyncClient(base_url="https://api.openai.com", timeout=30)
     call_client = OpenAIRealtimeCallClient(
@@ -77,4 +82,4 @@ def create_default_app() -> FastAPI:
         await http_client.aclose()
         repository.close()
 
-    return create_app(call_client, registry, shutdown)
+    return create_app(call_client, registry, service, shutdown)

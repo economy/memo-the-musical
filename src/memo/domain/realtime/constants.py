@@ -1,0 +1,12 @@
+REALTIME_MODEL = "gpt-realtime-2.1-mini"
+REALTIME_SESSION_TYPE = "realtime"
+REALTIME_CALLS_PATH = "/v1/realtime/calls"
+REALTIME_VAD_TYPE = "semantic_vad"
+REALTIME_VOICE = "marin"
+
+SDP_MEDIA_TYPE = "application/sdp"
+SDP_FORM_FIELD = "sdp"
+SESSION_FORM_FIELD = "session"
+CALL_ID_HEADER = "X-Memo-Call-ID"
+MAX_SDP_BYTES = 65_536
+SIDEBAND_ATTACH_TIMEOUT_SECONDS = 10.0

@@ -1,3 +1,7 @@
+import logging
+
+import pytest
+
 from memo.domain.realtime.ports import SidebandAttacher, SidebandSession
 from memo.services.sideband_registry import SidebandSessionRegistry
 
@@ -22,6 +26,23 @@ class FakeAttacher(SidebandAttacher):
         return self.session
 
 
+class FailingCloseSession(SidebandSession):
+    async def close(self) -> None:
+        """Simulate an SDK cleanup exception."""
+        raise RuntimeError("secret transport diagnostic")
+
+
+class PerCallAttacher(SidebandAttacher):
+    def __init__(self) -> None:
+        self.good_session = FakeSession()
+
+    async def attach(self, call_id: str, project_id: str) -> SidebandSession:
+        """Return one failing and one healthy session."""
+        if call_id == "rtc_failing":
+            return FailingCloseSession()
+        return self.good_session
+
+
 async def test_registry_attaches_and_tracks_existing_call() -> None:
     attacher = FakeAttacher()
     registry = SidebandSessionRegistry(attacher)
@@ -34,3 +55,20 @@ async def test_registry_attaches_and_tracks_existing_call() -> None:
     await registry.stop("rtc_123")
     assert attacher.session.closed is True
     assert registry.active_call_ids == set()
+
+
+async def test_close_all_continues_after_session_cleanup_exception(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    attacher = PerCallAttacher()
+    registry = SidebandSessionRegistry(attacher)
+    await registry.start("rtc_failing", "project_1")
+    await registry.start("rtc_healthy", "project_2")
+
+    with caplog.at_level(logging.ERROR):
+        await registry.close_all()
+
+    assert registry.active_call_ids == set()
+    assert attacher.good_session.closed is True
+    assert "Realtime sideband session cleanup failed" in caplog.text
+    assert "secret transport diagnostic" not in caplog.text

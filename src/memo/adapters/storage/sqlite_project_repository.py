@@ -7,11 +7,20 @@ from memo.domain.projects.repository import ProjectRepository
 DATABASE_VERSION = 1
 
 
+class UnsupportedDatabaseSchemaError(RuntimeError):
+    """Explain how to recover from an incompatible local database."""
+
+
 class SQLiteProjectRepository(ProjectRepository):
     def __init__(self, database_path: Path) -> None:
+        self._database_path = database_path
         self._connection = sqlite3.connect(database_path, check_same_thread=False)
         self._connection.row_factory = sqlite3.Row
-        self._migrate()
+        try:
+            self._migrate()
+        except BaseException:
+            self._connection.close()
+            raise
 
     def create(self, project: Project) -> Project:
         """Persist a new project in one transaction."""
@@ -95,8 +104,15 @@ class SQLiteProjectRepository(ProjectRepository):
                     "INSERT INTO schema_metadata (version) VALUES (?)",
                     (DATABASE_VERSION,),
                 )
-            elif int(row["version"]) != DATABASE_VERSION:
-                raise RuntimeError("Unsupported database schema version")
+            else:
+                found_version = int(row["version"])
+                if found_version != DATABASE_VERSION:
+                    raise UnsupportedDatabaseSchemaError(
+                        f"SQLite schema mismatch at {self._database_path}: "
+                        f"found {found_version}, expected {DATABASE_VERSION}. "
+                        "For this local hackathon database, back up and remove "
+                        "the file, then restart."
+                    )
             self._connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS projects (

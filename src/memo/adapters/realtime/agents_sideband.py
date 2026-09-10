@@ -1,10 +1,13 @@
 import asyncio
+import logging
 from contextlib import suppress
 
 from agents.realtime import RealtimeRunner, RealtimeSession
 
 from memo.domain.realtime.ports import SidebandAttacher, SidebandSession
 from memo.services.realtime_agent import RealtimeAgentFactory
+
+LOGGER = logging.getLogger(__name__)
 
 
 class AgentsSDKSidebandSession(SidebandSession):
@@ -14,10 +17,12 @@ class AgentsSDKSidebandSession(SidebandSession):
 
     async def close(self) -> None:
         """Close the SDK connection and stop its event-consumer task."""
-        await self._session.close()
-        self._task.cancel()
-        with suppress(asyncio.CancelledError):
-            await self._task
+        try:
+            await self._session.close()
+        finally:
+            self._task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self._task
 
 
 class AgentsSDKSidebandAttacher(SidebandAttacher):
@@ -36,5 +41,14 @@ class AgentsSDKSidebandAttacher(SidebandAttacher):
 
     @staticmethod
     async def _consume_events(session: RealtimeSession) -> None:
-        async for _ in session:
-            pass
+        try:
+            async for _ in session:
+                pass
+            LOGGER.info("Realtime sideband event stream ended")
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            LOGGER.error(
+                "Realtime sideband event stream failed; error_type=%s",
+                type(error).__name__,
+            )

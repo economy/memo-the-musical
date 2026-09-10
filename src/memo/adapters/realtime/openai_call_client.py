@@ -2,10 +2,17 @@ import json
 
 import httpx
 
+from memo.domain.realtime.constants import (
+    REALTIME_CALLS_PATH,
+    REALTIME_MODEL,
+    REALTIME_SESSION_TYPE,
+    REALTIME_VAD_TYPE,
+    REALTIME_VOICE,
+    SDP_FORM_FIELD,
+    SDP_MEDIA_TYPE,
+    SESSION_FORM_FIELD,
+)
 from memo.domain.realtime.ports import CallCreation, RealtimeCallPort
-
-REALTIME_MODEL = "gpt-realtime-2.1-mini"
-CALLS_PATH = "/v1/realtime/calls"
 
 
 class RealtimeUpstreamError(RuntimeError):
@@ -21,28 +28,32 @@ class OpenAIRealtimeCallClient(RealtimeCallPort):
         """Forward a browser SDP offer without exposing the server API key."""
         session = json.dumps(
             {
-                "type": "realtime",
+                "type": REALTIME_SESSION_TYPE,
                 "model": REALTIME_MODEL,
                 "audio": {
-                    "input": {"turn_detection": {"type": "semantic_vad"}},
-                    "output": {"voice": "marin"},
+                    "input": {"turn_detection": {"type": REALTIME_VAD_TYPE}},
+                    "output": {"voice": REALTIME_VOICE},
                 },
             }
         )
-        response = await self._http_client.post(
-            CALLS_PATH,
-            headers={"Authorization": f"Bearer {self._api_key}"},
-            files={
-                "sdp": ("offer.sdp", offer_sdp, "application/sdp"),
-                "session": ("session.json", session, "application/json"),
-            },
-        )
+        try:
+            response = await self._http_client.post(
+                REALTIME_CALLS_PATH,
+                headers={"Authorization": f"Bearer {self._api_key}"},
+                files={
+                    SDP_FORM_FIELD: ("offer.sdp", offer_sdp, SDP_MEDIA_TYPE),
+                    SESSION_FORM_FIELD: ("session.json", session, "application/json"),
+                },
+            )
+        except httpx.RequestError as error:
+            raise RealtimeUpstreamError("OpenAI realtime call creation request failed") from error
         if not response.is_success:
             raise RealtimeUpstreamError(
                 f"OpenAI realtime call creation failed with status {response.status_code}"
             )
-        location = response.headers.get("Location")
-        call_id = location.rstrip("/").rsplit("/", 1)[-1] if location else ""
+        location: str = response.headers.get("Location", "")
+        location_path = location.strip().partition("?")[0].rstrip("/")
+        call_id = location_path.rsplit("/", 1)[-1] if location_path else ""
         if not call_id:
             raise RealtimeUpstreamError("OpenAI response omitted the realtime call identifier")
         return CallCreation(call_id=call_id, answer_sdp=response.text)
