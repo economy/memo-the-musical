@@ -12,14 +12,29 @@ from memo.adapters.realtime.agents_sideband import AgentsSDKSidebandAttacher
 from memo.adapters.realtime.openai_call_client import OpenAIRealtimeCallClient
 from memo.adapters.storage.sqlite_project_repository import SQLiteProjectRepository
 from memo.config import Settings
-from memo.domain.message_dna.models import MessagePreset, Project
+from memo.domain.demo.constants import (
+    ACTIVE_PROJECT_COOKIE,
+    SECURITY_DEMO_PROJECT_ID,
+    SECURITY_DEMO_TEXT,
+)
+from memo.domain.message_dna.models import MessagePreset
+from memo.domain.message_dna.readiness import assess_readiness
 from memo.domain.realtime.ports import RealtimeCallPort
+from memo.routes.fragments import build_fragments_router
+from memo.routes.projects import build_projects_router
 from memo.routes.realtime import build_realtime_router
+from memo.services.demo_seed import ensure_demo_projects
 from memo.services.message_dna_service import MessageDNAService
 from memo.services.realtime_agent import RealtimeAgentFactory
 from memo.services.sideband_registry import SidebandSessionRegistry
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEMO_PRESETS = (
+    MessagePreset.TRAINING,
+    MessagePreset.ANNOUNCEMENT,
+    MessagePreset.PRODUCT,
+    MessagePreset.REPORT,
+)
 
 
 def create_app(
@@ -43,9 +58,28 @@ def create_app(
     templates = Jinja2Templates(directory=PROJECT_ROOT / "templates")
     app.mount("/static", StaticFiles(directory=PROJECT_ROOT / "static"), name="static")
     app.include_router(build_realtime_router(call_client, registry, message_service))
+    app.include_router(build_projects_router(message_service))
+    app.include_router(build_fragments_router(message_service, templates))
 
     async def index(request: Request) -> HTMLResponse:
-        return templates.TemplateResponse(request=request, name="index.html")
+        project_id = request.cookies.get(ACTIVE_PROJECT_COOKIE, SECURITY_DEMO_PROJECT_ID)
+        project = message_service.get_project(project_id)
+        if project is None:
+            project = message_service.get_project(SECURITY_DEMO_PROJECT_ID)
+        if project is None:
+            raise RuntimeError("Security training demo project is missing")
+        readiness = assess_readiness(project.message_dna)
+        return templates.TemplateResponse(
+            request=request,
+            name="index.html",
+            context={
+                "project": project,
+                "presets": DEMO_PRESETS,
+                "demo_text": SECURITY_DEMO_TEXT,
+                "readiness": readiness,
+                "is_replay": project.id.endswith("-replay"),
+            },
+        )
 
     async def health() -> dict[str, str]:
         return {"status": "ok"}
@@ -61,11 +95,7 @@ def create_default_app() -> FastAPI:
     settings.database_path.parent.mkdir(parents=True, exist_ok=True)
     repository = SQLiteProjectRepository(settings.database_path)
     service = MessageDNAService(repository)
-    if service.get_project("transport-spike") is None:
-        project = Project.new(title="Transport spike", preset=MessagePreset.GENERAL)
-        project_data = project.model_dump()
-        project_data["id"] = "transport-spike"
-        service.create_project(Project.model_validate(project_data))
+    ensure_demo_projects(service)
 
     http_client = httpx.AsyncClient(base_url="https://api.openai.com", timeout=30)
     call_client = OpenAIRealtimeCallClient(

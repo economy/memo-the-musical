@@ -1,0 +1,114 @@
+<div class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b-2 border-ink pb-3">
+    <div>
+      <p class="font-mono text-xs uppercase tracking-[0.35em] text-rust">Message DNA Zine</p>
+      <h2 class="text-3xl font-black uppercase">{{ project.title }}</h2>
+    </div>
+    {% if is_replay %}
+    <span class="border-2 border-rust bg-rust px-3 py-1 font-mono text-sm font-bold uppercase text-cream">REPLAY</span>
+    {% else %}
+    <span class="border-2 border-ink bg-acid px-3 py-1 font-mono text-sm font-bold uppercase">Live Project</span>
+    {% endif %}
+  </div>
+
+  <div class="border-2 border-ink bg-cream p-4">
+    <p class="font-mono text-xs uppercase tracking-widest">Earworm Readiness</p>
+    {% if readiness.ready %}
+    <p class="mt-2 text-2xl font-black uppercase text-rust">Ready for Composer</p>
+    {% else %}
+    <p class="mt-2 text-lg font-bold">Not ready yet</p>
+    <ul class="mt-2 list-disc pl-5 font-mono text-xs uppercase">
+      {% for item in readiness.unresolved %}
+      <li>Missing {{ item.replace('_', ' ') }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-2">
+    <article class="border-2 border-ink p-4">
+      <h3 class="font-mono text-xs uppercase tracking-widest text-rust">The Chorus</h3>
+      {% if project.message_dna.chorus %}
+      <p class="mt-2 text-lg font-bold leading-snug">{{ project.message_dna.chorus.summary }}</p>
+      {% else %}
+      <p class="mt-2 font-mono text-sm text-rust">Unwritten</p>
+      {% endif %}
+    </article>
+
+    <article class="border-2 border-ink p-4">
+      <h3 class="font-mono text-xs uppercase tracking-widest text-rust">Do This</h3>
+      {% if project.message_dna.call_to_action %}
+      <p class="mt-2 text-lg font-bold">{{ project.message_dna.call_to_action.action }}</p>
+      {% if project.message_dna.call_to_action.url %}
+      <p class="mt-1 font-mono text-xs break-all">{{ project.message_dna.call_to_action.url }}</p>
+      {% endif %}
+      {% else %}
+      <p class="mt-2 font-mono text-sm text-rust">Unwritten</p>
+      {% endif %}
+    </article>
+  </div>
+
+  <article class="border-2 border-ink p-4">
+    <h3 class="font-mono text-xs uppercase tracking-widest text-rust">Sacred Lyrics</h3>
+    {% if project.message_dna.original_request %}
+    <p class="mt-2 text-sm leading-relaxed">{{ project.message_dna.original_request }}</p>
+    {% else %}
+    <p class="mt-2 font-mono text-sm text-rust">No original request captured yet.</p>
+    {% endif %}
+  </article>
+
+  <div class="grid gap-4 md:grid-cols-2">
+    <article class="border-2 border-ink p-4">
+      <h3 class="font-mono text-xs uppercase tracking-widest text-rust">Vibe Check</h3>
+      <ul class="mt-2 space-y-1 text-sm">
+        <li><strong>Audience:</strong> {{ project.message_dna.audience or "Unknown" }}</li>
+        <li><strong>Emotion:</strong> {{ project.message_dna.vibe.emotional_response or "Unset" }}</li>
+        <li><strong>Humor:</strong> {{ project.message_dna.vibe.humor.value }}</li>
+        {% for note in project.message_dna.vibe.notes %}
+        <li class="font-mono text-xs">{{ note }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="border-2 border-ink p-4">
+      <h3 class="font-mono text-xs uppercase tracking-widest text-rust">Legal Says No</h3>
+      {% if project.message_dna.guardrails %}
+      <ul class="mt-2 list-disc pl-5 text-sm">
+        {% for rule in project.message_dna.guardrails %}
+        <li>{{ rule }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="mt-2 font-mono text-sm text-rust">No guardrails yet.</p>
+      {% endif %}
+    </article>
+  </div>
+
+  <article class="border-2 border-ink p-4">
+    <h3 class="font-mono text-xs uppercase tracking-widest text-rust">Locked Facts</h3>
+    {% if project.message_dna.locked_facts %}
+    <ul class="mt-2 space-y-2">
+      {% for fact in project.message_dna.locked_facts %}
+      <li class="border border-ink p-2 font-mono text-xs {% if fact.status.value == 'superseded' %}bg-rust/10 line-through{% else %}bg-acid/30{% endif %}">
+        <span class="uppercase">{{ fact.status.value }}</span> · {{ fact.key }} = {{ fact.value }}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="mt-2 font-mono text-sm text-rust">No exact facts locked yet.</p>
+    {% endif %}
+  </article>
+
+  <article class="border-2 border-ink p-4">
+    <h3 class="font-mono text-xs uppercase tracking-widest text-rust">Unresolved Items</h3>
+    {% if project.message_dna.unresolved_questions %}
+    <ul class="mt-2 list-disc pl-5 text-sm">
+      {% for question in project.message_dna.unresolved_questions %}
+      <li>{{ question }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="mt-2 font-mono text-sm text-rust">Nothing open.</p>
+    {% endif %}
+  </article>
+</div>

@@ -21,8 +21,32 @@ remain on the server. Normal tests use injected fakes and need neither credentia
 - `task smoke` — start the app and verify its health endpoint
 - `task live-smoke` — print whether a credentialed live spike can run
 
-## Demo fallback
+## 60-second demo script
 
-The intended 60-second demo is documented in `docs/prds/memo-the-musical.md`. If microphone
-capture fails, use the same prepared text through the visibly labeled demo-transcript path. If
-the network or Realtime API fails, use a visibly labeled replay of the last successful run.
+Use the presenter rail on the home page, or follow this exact sequence:
+
+1. **0:00–0:07 — Hook:** “Business messages are boring. Catchy misinformation is worse. Memo is
+   the safety preflight before a memo becomes music.”
+2. **0:07–0:27 — Live voice:** Click **Start Voice Session** and say:
+   “Make our security training reminder memorable. Everyone, including contractors, must complete
+   LearnHub by Friday, October 16 at 5 PM Pacific. It takes about 12 minutes. Give it playful
+   spy-movie energy, but never joke about phishing victims. Actually, correction: Thursday,
+   October 15—not Friday. Don’t invent prizes.”
+3. **0:27–0:36 — Follow-up:** When asked about teasing procrastination, answer: “Lightly tease
+   procrastination, never individuals.”
+4. **0:36–0:49 — Reveal:** Point to Message DNA: superseded Friday deadline, active Thursday
+   deadline, Chorus, CTA, audience, vibe, guardrails, and unresolved LearnHub URL.
+5. **0:49–0:55 — Persistence:** Reload the page and show the same project from SQLite.
+6. **0:55–1:00 — Close:** “Memo doesn’t write the song. It makes sure the song knows what it is
+   allowed to sing.”
+
+## Fallback sequence
+
+1. **Microphone fails:** Start a live session, click **Use Demo Transcript**. The badge stays
+   **LIVE** and the exact prepared text is sent through the active Realtime data channel.
+2. **Network or Realtime fails:** Click **Replay Last Run**. The badge switches to **REPLAY**
+   and loads the pre-seeded completed `security-training-replay` project from SQLite. This is
+   never presented as live.
+3. **Last resort:** Manual editing remains outside this demo path.
+
+The presenter rail can be hidden with one click during the talk track.

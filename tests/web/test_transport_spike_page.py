@@ -4,6 +4,7 @@ import httpx
 
 from memo.adapters.storage.sqlite_project_repository import SQLiteProjectRepository
 from memo.app import create_app
+from memo.domain.demo.constants import SECURITY_DEMO_PROJECT_ID
 from memo.domain.message_dna.models import MessagePreset, Project
 from memo.domain.realtime.ports import (
     CallCreation,
@@ -37,7 +38,7 @@ async def test_page_exposes_browser_webrtc_controls_without_websocket(tmp_path: 
     service = MessageDNAService(repository)
     project = Project.new(title="Transport spike", preset=MessagePreset.GENERAL)
     project_data = project.model_dump()
-    project_data["id"] = "transport-spike"
+    project_data["id"] = SECURITY_DEMO_PROJECT_ID
     service.create_project(Project.model_validate(project_data))
     app = create_app(
         PageCallClient(),
@@ -55,6 +56,8 @@ async def test_page_exposes_browser_webrtc_controls_without_websocket(tmp_path: 
     assert page.status_code == 200
     assert 'id="start-call"' in page.text
     assert 'id="remote-audio"' in page.text
+    assert 'id="demo-transcript"' in page.text
+    assert 'id="replay-fallback"' in page.text
     assert script.status_code == 200
     assert "RTCPeerConnection" in script.text
     assert "getUserMedia" in script.text
