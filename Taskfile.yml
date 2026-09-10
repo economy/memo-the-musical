@@ -1,0 +1,43 @@
+version: "3"
+
+tasks:
+  dev:
+    desc: Start the local FastAPI application
+    cmds:
+      - uv run uvicorn memo.app:create_default_app --factory --reload
+
+  test:
+    desc: Run the credential-free test suite
+    cmds:
+      - uv run pytest
+
+  check:
+    desc: Run formatting, typing, and tests
+    cmds:
+      - uv run ruff check .
+      - uv run ruff format --check .
+      - uv run pyright
+      - uv run pytest
+
+  smoke:
+    desc: Verify the production app starts and answers health checks
+    cmds:
+      - |
+        uv run uvicorn memo.app:create_default_app --factory --port 8765 &
+        pid=$!
+        trap 'kill "$pid" 2>/dev/null || true' EXIT
+        for attempt in 1 2 3 4 5; do
+          curl --fail --silent http://127.0.0.1:8765/health && exit 0
+          sleep 1
+        done
+        exit 1
+
+  live-smoke:
+    desc: Report whether a credentialed live WebRTC test can run
+    cmds:
+      - |
+        if [ -z "${MEMO_OPENAI_API_KEY:-}" ]; then
+          echo "SKIPPED: set MEMO_OPENAI_API_KEY and use the browser transport spike"
+          exit 0
+        fi
+        echo "READY: run 'task dev' and start the browser voice session"

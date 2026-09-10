@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Memo: The Musical</title>
+    <script src="https://unpkg.com/htmx.org@2.0.7"></script>
+  </head>
+  <body>
+    <main>
+      <p>Transport spike · browser audio uses WebRTC</p>
+      <h1>Memo: The Musical</h1>
+      <p>Turn a corporate ramble into accurate, music-ready Message DNA.</p>
+      <label>
+        Project ID
+        <input id="project-id" value="transport-spike">
+      </label>
+      <button id="start-call" type="button">Start voice session</button>
+      <button id="stop-call" type="button" disabled>End session</button>
+      <p>Status: <strong id="call-status">idle</strong></p>
+      <p id="data-status">Data channel: closed</p>
+      <audio id="remote-audio" autoplay></audio>
+    </main>
+    <script type="module" src="/static/js/realtime.js"></script>
+  </body>
+</html>
